@@ -9,8 +9,92 @@ data:
     const app = express();
     const port = 3000;
 
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Projet OpenShift - Hamousabs</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+                color: white;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+            }
+            .card {
+                background-color: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                padding: 40px;
+                border-radius: 15px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                text-align: center;
+                max-width: 550px;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            h1 {
+                color: #fff;
+                margin-bottom: 5px;
+                font-size: 2em;
+            }
+            h2 {
+                color: #e10098; /* Rose OpenShift */
+                font-size: 1.2em;
+                margin-bottom: 25px;
+            }
+            .info-box {
+                background-color: rgba(0, 0, 0, 0.2);
+                padding: 20px;
+                border-radius: 8px;
+                margin: 15px 0;
+                font-size: 1.1em;
+                text-align: left;
+                line-height: 1.8;
+            }
+            .info-box span {
+                font-weight: bold;
+                color: #00ffcc;
+                float: right;
+            }
+            .status {
+                margin-top: 30px;
+                padding: 12px;
+                background-color: rgba(40, 167, 69, 0.8);
+                color: white;
+                border-radius: 5px;
+                font-weight: bold;
+                letter-spacing: 1px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h1>🎓 Projet Architecture 3-Tiers</h1>
+            <h2>Déploiement GitOps sur OpenShift</h2>
+            
+            <div class="info-box">
+                <div>👤 <b>Étudiant :</b> <span>Hamousabs</span></div>
+                <div>📚 <b>Classe :</b> <span>Master 1 SR</span></div>
+                <div>🚀 <b>Namespace :</b> <span>hamousabs-dev</span></div>
+            </div>
+
+            <p style="font-size: 0.9em; color: #ddd; margin-top: 20px;">
+                Ce frontend Node.js + Nginx est provisionné automatiquement depuis GitHub.
+            </p>
+            
+            <div class="status">✅ Serveur Web En Ligne</div>
+        </div>
+    </body>
+    </html>
+    `;
+
     app.get('/', (req, res) => {
-      res.send('<h1 style="color: #2c3e50; font-family: sans-serif; text-align: center; margin-top: 50px;">🚀 Félicitations !</h1><p style="text-align: center; font-family: sans-serif;">Ton serveur Web fonctionne parfaitement sur OpenShift via GitHub Actions.</p>');
+      res.send(htmlContent);
     });
 
     app.listen(port, () => {
