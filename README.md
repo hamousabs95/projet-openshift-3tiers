@@ -130,4 +130,3 @@ Service MySQL interne :
 
 ---
 
-*Ce README est maintenant à jour, prêt pour documentation et soutenance.*
