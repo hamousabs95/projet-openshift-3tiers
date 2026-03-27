@@ -1,0 +1,68 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm1-pfsense
+  namespace: hamousabs-dev
+  labels:
+    role: firewall-gateway
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      labels:
+        kubevirt.io/domain: vm1-pfsense
+        role: firewall-gateway
+    spec:
+      domain:
+        cpu:
+          cores: 1
+        resources:
+          limits:
+            memory: 2Gi
+        devices:
+          disks:
+            - bootOrder: 1
+              disk: { bus: virtio }
+              name: rootdisk
+            - disk: { bus: virtio }
+              name: cloudinitdisk
+          interfaces:
+            - name: default
+              masquerade: {}
+              model: virtio
+      networks:
+        - name: default
+          pod: {}
+      volumes:
+        - dataVolume:
+            name: vm1-pfsense-disk
+          name: rootdisk
+        - cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              hostname: vm1-pfsense
+              chpasswd: { expire: false }
+              password: Pfsense123!
+              user: fedora
+              runcmd:
+                - dnf install -y iptables-services
+                - systemctl enable --now iptables
+                - echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+                - sysctl -p
+                - iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+                - service iptables save
+          name: cloudinitdisk
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: vm1-pfsense-disk
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: fedora
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: 30Gi

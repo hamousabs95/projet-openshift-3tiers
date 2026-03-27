@@ -1,0 +1,121 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm2-mysql
+  namespace: hamousabs-dev
+  labels:
+    app: vm2-mysql
+    role: database-server
+    vm.kubevirt.io/template: fedora-server-small
+    vm.kubevirt.io/template.namespace: openshift
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/flavor: small
+        vm.kubevirt.io/os: fedora
+        vm.kubevirt.io/workload: server
+      labels:
+        kubevirt.io/domain: vm2-mysql
+        kubevirt.io/size: small
+        network.kubevirt.io/headlessService: headless
+        role: database-server
+    spec:
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 1
+          sockets: 1
+          threads: 1
+        devices:
+          disks:
+            - bootOrder: 1
+              disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+          interfaces:
+            - masquerade: {}
+              model: virtio
+              name: default
+          networkInterfaceMultiqueue: true
+          rng: {}
+        features:
+          acpi: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+        machine:
+          type: pc-q35-rhel9.2.0
+        memory:
+          guest: 2Gi
+        resources:
+          limits:
+            memory: 2Gi
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 180
+      tolerations:
+        - effect: NoSchedule
+          key: sandbox-cnv
+          operator: Exists
+      volumes:
+        - dataVolume:
+            name: vm2-mysql-disk
+          name: rootdisk
+        - cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              hostname: vm2-mysql
+              chpasswd:
+                expire: false
+              password: Mysql123!
+              user: fedora
+              runcmd:
+                # Installation MySQL
+                - dnf install -y mysql-server
+                - systemctl enable mysqld
+                - systemctl start mysqld
+                # Attendre que MySQL démarre
+                - sleep 15
+                # Configuration MySQL
+                - |
+                  mysql -u root <<MYSQL
+                  ALTER USER 'root'@'localhost' IDENTIFIED BY 'RootPass123!';
+                  CREATE DATABASE IF NOT EXISTS appdb CHARACTER SET utf8mb4;
+                  CREATE USER IF NOT EXISTS 'appuser'@'%' IDENTIFIED BY 'AppPass123!';
+                  GRANT ALL PRIVILEGES ON appdb.* TO 'appuser'@'%';
+                  USE appdb;
+                  CREATE TABLE IF NOT EXISTS test_connection (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    message VARCHAR(255),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                  );
+                  INSERT INTO test_connection (message) VALUES ('MySQL VM2 - TP OpenShift OK');
+                  FLUSH PRIVILEGES;
+                  MYSQL
+                # Permettre connexions externes
+                - sed -i 's/bind-address.*/bind-address = 0.0.0.0/' /etc/my.cnf.d/mysql-server.cnf || true
+                - systemctl restart mysqld
+              final_message: "VM2 MySQL opérationnel!"
+          name: cloudinitdisk
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: vm2-mysql-disk
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: fedora
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: 30Gi

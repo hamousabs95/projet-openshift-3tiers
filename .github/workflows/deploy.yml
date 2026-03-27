@@ -1,0 +1,46 @@
+name: Deploy Infrastructure Hybride OpenShift
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  NAMESPACE: hamousabs-dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Install CLI OpenShift
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: latest
+
+      - name: 🔐 Login OpenShift
+        run: |
+          oc login --token=${{ secrets.OC_TOKEN }} --server=${{ secrets.OC_SERVER }} --insecure-skip-tls-verify=true
+          oc project ${{ env.NAMESPACE }}
+
+      - name: 🔒 Deploy NetworkPolicies
+        run: oc apply -f network/networkpolicy.yaml -n ${{ env.NAMESPACE }}
+
+      - name: 🖥️ Deploy VMs (Sandbox Mode)
+        run: |
+          # Suppression des anciennes instances pour nettoyer les erreurs de volume
+          oc delete vm vm1-pfsense --ignore-not-found
+          oc delete vm vm2-mysql --ignore-not-found
+          
+          oc apply -f vms/vm1-pfsense/virtualmachine.yaml -n ${{ env.NAMESPACE }}
+          oc apply -f vms/vm2-mysql/virtualmachine.yaml -n ${{ env.NAMESPACE }}
+
+      - name: 🌍 Déploiement Nginx et Config
+        run: |
+          oc apply -f conteneur/nginx/deployment.yaml -n ${{ env.NAMESPACE }}

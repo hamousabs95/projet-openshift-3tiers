@@ -1,0 +1,19 @@
+---
+# Service pour accéder à VM2 MySQL depuis le conteneur Nginx
+# Ce service pointe vers le pod VMI de vm2-mysql
+apiVersion: v1
+kind: Service
+metadata:
+  name: vm2-mysql-service
+  namespace: hamousabs-dev
+  labels:
+    app: vm2-mysql
+spec:
+  type: ClusterIP
+  selector:
+    kubevirt.io/domain: vm2-mysql
+  ports:
+    - name: mysql
+      protocol: TCP
+      port: 3306
+      targetPort: 3306

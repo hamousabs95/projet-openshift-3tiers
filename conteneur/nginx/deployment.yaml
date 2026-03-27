@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-web
+  namespace: hamousabs-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-web
+  template:
+    metadata:
+      labels:
+        app: nginx-web
+    spec:
+      containers:
+        - name: nodejs-app
+          image: image-registry.openshift-image-registry.svc:5000/openshift/nodejs:18-ubi8
+          # CORRECTIF : installation forcée des modules manquants
+          command: ["sh", "-c", "npm install express mysql2 && echo \"$APP_JS\" > app.js && node app.js"]
+          env:
+            - name: DB_HOST
+              value: "vm2-mysql-service"
+            - name: DB_USER
+              value: "appuser"
+            - name: DB_PASSWORD
+              value: "AppPass123!"
+            - name: DB_NAME
+              value: "appdb"
+            - name: APP_JS
+              valueFrom:
+                configMapKeyRef:
+                  name: nginx-config
+                  key: app.js
+        - name: nginx
+          image: bitnami/nginx:latest # CORRECTIF : Image sans erreur de permission
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: app-config
+              mountPath: /opt/bitnami/nginx/conf/server_blocks/my_server.conf
+              subPath: nginx.conf
+      volumes:
+        - name: app-config
+          configMap:
+            name: nginx-config
